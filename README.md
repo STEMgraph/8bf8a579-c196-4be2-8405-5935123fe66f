@@ -1,51 +1,123 @@
 <!---
 {
-  "depends_on": [],
+  "id": "8bf8a579-c196-4be2-8405-5935123fe66f",
+  "depends_on": ["d1bee1c7-d88a-4f00-a44e-3e402f6ee826"],
   "author": "Stephan Bökelmann",
-  "first_used": "2025-03-17",
-  "keywords": ["learning", "exercises", "education", "practice"]
+  "first_used": "2025-05-27",
+  "keywords": ["Neo4j", "Docker", "Container", "Persistent Storage", "Graph Database", "Cypher"]
 }
 --->
 
-# Learning Through Exercises
+# Using Neo4j in a Docker Container
 
-## Introduction
-Learning by doing is one of the most effective methods to acquire new knowledge and skills. Rather than passively consuming information, actively engaging in problem-solving fosters deeper understanding and long-term retention. By working through structured exercises, students can grasp complex concepts in a more intuitive and applicable way. This approach is particularly beneficial in technical fields like programming, mathematics, and engineering.
+> In this exercise you will learn how to deploy and interact with a Neo4j graph database using Docker containers. Furthermore, we will explore how data persistence affects containerized databases and how to prevent data loss using volume mounts.
+
+### Introduction
+
+Neo4j is a highly scalable, native graph database designed to leverage data relationships as first-class entities. It uses a graph model for data storage and retrieval, which allows for flexible and efficient queries across highly connected data using the Cypher query language. Neo4j is commonly used for applications involving social networks, recommendation engines, fraud detection, and more.
+
+Running Neo4j within Docker offers a portable and repeatable environment for development and testing. Like other containers, these instances are ephemeral by default. Without proper volume configuration, all database state is lost when a container is stopped and removed. This exercise focuses on running a Neo4j container first without, then with persistent storage, demonstrating the significance of data durability in containerized environments.
+
+You'll start by running a Neo4j container, accessing its command-line Cypher shell, adding graph data, and exploring it using Cypher. You'll then see what happens to that data when the container is removed. Finally, you'll configure Docker volumes to persist Neo4j’s data and verify the setup by stopping and restarting the container.
 
 ### Further Readings and Other Sources
-- [The Importance of Practice in Learning](https://www.sciencedirect.com/science/article/pii/S036013151300062X)
-- "The Art of Learning" by Josh Waitzkin
-- [How to Learn Effectively: 5 Key Strategies](https://www.edutopia.org/article/5-research-backed-learning-strategies)
 
-## Tasks
-1. **Write a Summary**: Summarize the concept of "learning by doing" in 3-5 sentences.
-2. **Example Identification**: List three examples from your own experience where learning through exercises helped you understand a topic better.
-3. **Create an Exercise**: Design a simple exercise for a topic of your choice that someone else could use to practice.
-4. **Follow an Exercise**: Find an online tutorial that includes exercises and complete at least two of them.
-5. **Modify an Existing Exercise**: Take a basic problem from a textbook or online course and modify it to make it slightly more challenging.
-6. **Pair Learning**: Explain a concept to a partner and guide them through an exercise without giving direct answers.
-7. **Review Mistakes**: Look at an exercise you've previously completed incorrectly. Identify why the mistake happened and how to prevent it in the future.
-8. **Time Challenge**: Set a timer for 10 minutes and try to solve as many simple exercises as possible on a given topic.
-9. **Self-Assessment**: Create a checklist to evaluate your own performance in completing exercises effectively.
-10. **Reflect on Progress**: Write a short paragraph on how this structured approach to exercises has influenced your learning.
+* [Neo4j Docker Documentation](https://neo4j.com/developer/docker-run-neo4j/)
+* [Neo4j Cypher Query Language Docs](https://neo4j.com/docs/cypher-refcard/current/)
+* [Docker Volumes Documentation](https://docs.docker.com/storage/volumes/)
+* [Intro to Graph Databases – YouTube](https://www.youtube.com/watch?v=4jtmOZaIvS0)
 
-<details>
-  <summary>Tip for Task 5</summary>
-  Try making small adjustments first, such as increasing the difficulty slightly or adding an extra constraint.
-</details>
+### Tasks
 
-## Questions
-1. What are the main benefits of learning through exercises compared to passive learning?
-2. How do exercises improve long-term retention?
-3. Can you think of a subject where learning through exercises might be less effective? Why?
-4. What role does feedback play in learning through exercises?
-5. How can self-designed exercises improve understanding?
-6. Why is it beneficial to review past mistakes in exercises?
-7. How does explaining a concept to someone else reinforce your own understanding?
-8. What strategies can you use to stay motivated when practicing with exercises?
-9. How can timed challenges contribute to learning efficiency?
-10. How do exercises help bridge the gap between theory and practical application?
+1. **Pull the Neo4j Image:**
 
-## Advice
-Practice consistently and seek out diverse exercises that challenge different aspects of a topic. Combine exercises with reflection and feedback to maximize your learning efficiency. Don't hesitate to adapt exercises to fit your own needs and ensure that you're actively engaging with the material, rather than just going through the motions.
+   ```bash
+   docker pull neo4j:5
+   docker images | grep neo4j
+   ```
 
+2. **Run a Neo4j Container Without Persistent Storage:**
+
+   ```bash
+   docker run --name neo4j-temp -p7474:7474 -p7687:7687 \
+     -e NEO4J_AUTH=neo4j/test123 -d neo4j:5
+   docker ps -a
+   ```
+
+3. **Access Neo4j via Cypher Shell and Add Data:**
+
+   ```bash
+   docker exec -it neo4j-temp bin/cypher-shell -u neo4j -p test123
+   ```
+
+   Then run:
+
+   ```cypher
+   CREATE (a:Person {name: 'Alice'});
+   CREATE (b:Person {name: 'Bob'});
+   CREATE (a)-[:KNOWS]->(b);
+   MATCH (n) RETURN n;
+   ```
+
+4. **Explore Data Using Cypher Queries:**
+
+   ```cypher
+   MATCH (p:Person) WHERE p.name STARTS WITH 'A' RETURN p;
+   ```
+
+   Use `:exit` to leave the shell.
+
+5. **Stop and Remove the Container:**
+
+   ```bash
+   docker stop neo4j-temp
+   docker rm neo4j-temp
+   ```
+
+6. **Run a New Container With the Same Setup:**
+
+   ```bash
+   docker run --name neo4j-temp -p7474:7474 -p7687:7687 \
+     -e NEO4J_AUTH=neo4j/test123 -d neo4j:5
+   docker exec -it neo4j-temp bin/cypher-shell -u neo4j -p test123
+   ```
+
+   Run `MATCH (n) RETURN n;` and confirm the graph is gone.
+
+7. **Create Docker Volumes for Persistence:**
+
+   ```bash
+   docker volume create neo4j-data
+   docker volume create neo4j-logs
+   docker run --name neo4j-persistent -p7474:7474 -p7687:7687 \
+     -v neo4j-data:/data -v neo4j-logs:/logs \
+     -e NEO4J_AUTH=neo4j/test123 -d neo4j:5
+   ```
+
+8. **Verify Data Persistence:**
+   Recreate the graph data using `cypher-shell`, then stop and restart:
+
+   ```bash
+   docker stop neo4j-persistent
+   docker rm neo4j-persistent
+
+   docker run --name neo4j-persistent -p7474:7474 -p7687:7687 \
+     -v neo4j-data:/data -v neo4j-logs:/logs \
+     -e NEO4J_AUTH=neo4j/test123 -d neo4j:5
+   docker exec -it neo4j-persistent bin/cypher-shell -u neo4j -p test123
+   MATCH (n) RETURN n;
+   ```
+
+   Confirm the data still exists.
+
+### Questions
+
+1. What happens to the Neo4j data when the container is deleted without persistent storage?
+2. Why is using a volume critical for database containers?
+3. How do you list all Docker volumes on your system?
+4. Can you explain the commands `-v neo4j-data:/data` and `-v neo4j-logs:/logs`?
+5. What alternative methods besides named volumes could you use to persist data in Docker?
+
+### Advice
+
+Graph databases like Neo4j are extremely powerful for modeling connected data. However, like all stateful services, they require careful consideration when deployed in containers. Without persistent storage, all your nodes, relationships, and configurations vanish with the container. This exercise helps you appreciate the importance of Docker volumes in real-world database management. Explore advanced Cypher queries and consider integrating Neo4j with other services to simulate production-like workflows. Try this alongside other graph-processing exercises in the advanced database module \[link-to-exercise-advanced-graph-db].
