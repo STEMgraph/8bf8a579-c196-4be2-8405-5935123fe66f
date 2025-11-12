@@ -1,6 +1,7 @@
 <!---
 {
   "id": "8bf8a579-c196-4be2-8405-5935123fe66f",
+  "teaches": "Using Neo4j in a Docker Container",
   "depends_on": ["d1bee1c7-d88a-4f00-a44e-3e402f6ee826"],
   "author": "Stephan Bökelmann",
   "first_used": "2025-05-27",
